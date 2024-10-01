@@ -41,17 +41,51 @@ io.on("connection", (socket: Socket) => {
             users.push(socket.id);
             rooms.set(roomId, users);
 
+            socket.join(roomId);
+
             const creatorSocketId = users[0];
             if (!creatorSocketId) {
                 console.log('creator socket not found!');
                 return;
             }
 
-            socket.to(creatorSocketId).emit('user:joined', {name, id: socket.id});
+            io.to(creatorSocketId).emit('user:joined', {name, id: socket.id});
 
             console.log('room state after joining room:', rooms);
         } catch (err) {
             console.log("Error joining room", err);
+        }
+    });
+
+    socket.on('offer', ({offer, to, name}) => {
+        try {
+            console.log("Offer received on server from:", socket.id, "to:", to);
+
+            if(!offer || !to) {
+                console.log("offer or to(peerId) is missing");
+                return;
+            }
+
+            io.to(to).emit('test:event', {message: "This is test message"});
+            
+            io.to(to).emit('receive-offer', {offer, from: socket.id, remoteName: name}, (ack: any) => {
+                console.log('Offer sent, awaiting client response');
+            });
+            
+        } catch (error) {
+            console.error("Error sending offer to the peer", error);
+        }
+    });
+
+    socket.on('answer', ({answer, to}) => {
+        try {
+            if(!answer && !to){
+                console.log("answer and to(creatorId) is missing");
+                return;
+            }
+            io.to(to).emit('receive-answer', {answer, from: socket.id});
+        } catch (error) {
+            console.log('Error sending answer to the room creator', error);
         }
     })
 
