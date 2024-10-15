@@ -87,6 +87,21 @@ io.on("connection", (socket: Socket) => {
         } catch (error) {
             console.log('Error sending answer to the room creator', error);
         }
+    });
+
+    socket.on('ice-candidate', ({candidate, to}) => {
+        try {
+            if(!candidate || !to) {
+                console.log("candidate or roomId is missing");
+                return;
+            }
+
+            console.log("Sending ice candidate to client", candidate);
+
+            socket.to(to).emit('receive-ice-candidate', {candidate, from: socket.id});
+        } catch (error) {
+            console.log("Error receiving ice-candidate on server");
+        }
     })
 
     socket.on('disconnect', () => {
